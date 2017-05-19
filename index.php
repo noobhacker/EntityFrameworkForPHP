@@ -2,6 +2,7 @@
 include 'models/context.php';
 $db = new DbContext();
 
+// these are for demonstration purpose
 $results = $db->cats
     ->select($db->cats->id)
     ->join($db->cat_names)

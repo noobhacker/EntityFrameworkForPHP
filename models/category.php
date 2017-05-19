@@ -1,4 +1,6 @@
 <?php
+
+// follow the template to build structure from database
 class Category extends DbSet{
     public $id;
     public $img;
