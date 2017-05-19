@@ -5,7 +5,7 @@ Simple QueryBuilder like ASP.NET Entity Framework.
 I created this layer for my own project use and I find it very useful. 
 This is not a super big many function framework but I build the crucial features for simple LINQ operation. 
 
-![alt_text](https://github.com/noobhacker/EntityFrameworkForPHP/blob/master/img/semilambda.PNG)
+![alt_text](https://github.com/noobhacker/EntityFrameworkForPHP/blob/master/img/inserts.PNG)
 
 Few reasons I didn't apply lambda expressions
 1. Reflection in php? There is no way to parse .where(x => x.id == 1) into values, it will directly turn into boolean.
@@ -13,7 +13,7 @@ Few reasons I didn't apply lambda expressions
 
 .where(function ($x) { $x.id == 1 }; ); //which is nonsense
 
-![alt_text](https://github.com/noobhacker/EntityFrameworkForPHP/blob/master/img/update.PNG)
+![alt_text](https://github.com/noobhacker/EntityFrameworkForPHP/blob/master/img/updates.PNG)
 
 Package includes
 - 1 core DbSet code file for query builder and 1 BaseContext for mysqli $conn DI.
