@@ -13,6 +13,8 @@ Few reasons I didn't apply lambda expressions
 
 .where(function ($x) { $x.id == 1 }; ); //which is nonsense
 
+![alt_text](https://github.com/noobhacker/EntityFrameworkForPHP/blob/master/img/update.PNG)
+
 Package includes
 - 1 core DbSet code file for query builder and 1 BaseContext for mysqli $conn DI.
 - Template for DbContext and DbSet, since there is no DbSet<<Model>> in php you have to extend DbSet
