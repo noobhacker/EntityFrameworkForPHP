@@ -16,9 +16,11 @@ Few reasons I didn't apply lambda expressions
 ![alt_text](https://github.com/noobhacker/EntityFrameworkForPHP/blob/master/img/updates.PNG)
 
 Package includes
-- 1 core DbSet code file for query builder and 1 BaseContext for mysqli $conn DI.
+- Core DbSet code file for query builder and 1 BaseContext for mysqli $conn DI.
 - Template for DbContext and DbSet, since there is no DbSet<<Model>> in php you have to extend DbSet
 - NO $db->saveChanges(), this is only query builder that looks like Entity Framework.
+
+![alt_text](https://github.com/noobhacker/EntityFrameworkForPHP/blob/master/img/foreach.PNG)
 
 ### Database naming conventions
 
