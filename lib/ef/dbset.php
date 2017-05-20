@@ -27,25 +27,37 @@ class DbSet{
         $this->pluralName = $pluralName;
     }
 
-    function select(...$columns){
-        if($columns != null){
-            foreach($columns as $column) {
-                if($column == null)
+    private function selectBase($isAsId, $Ts) {
+        if($Ts != null){
+            foreach($Ts as $T) {
+                if($T == null)
                     return $this;
 
                 if($this->selects != "")
                     $this->selects .= ", ";
-                $this->selects .= $column;
+
+                if($isAsId)
+                    $this->selects .= $T->id. " AS ". $T->tableName. "_id";
+                else
+                    $this->selects .= $T;
             }  
         }
         return $this;
     }
 
+    function select(...$columns){
+        return $this->selectBase(false, $columns);
+    }
+
+    function selectAsId(...$tables){
+        return $this->selectBase(true, $tables);
+    }
+
     function selectAs($column, $aliasName){
         if($this->selects != "")
-                $this->selects .= ", ";
-            $this->selects .= "$column". " AS ". $aliasName;
-    }
+            $this->selects .= ", ";
+        $this->selects .= "$column". " AS ". $aliasName;
+    } 
 
     function join(...$targets){
         foreach($targets as $target){
@@ -69,25 +81,22 @@ class DbSet{
 
     function limit($number){
         $this->others .= "\nLIMIT $number ";
-
         return $this;
     }
 
     function orderBy($column){
         $this->others .= "\nORDER BY $column ";
-
         return $this;
     }
 
     function orderByDesc($column){
         $this->others .= "\nORDER BY $column DESC ";
-
         return $this;
     }
 
     private function getColumnName($column){
-            $lastIndex = strripos($column, ".");
-            return substr($column, $lastIndex + 1); // +1 for the dot
+        $lastIndex = strripos($column, ".");
+        return substr($column, $lastIndex + 1); // +1 for the dot
     }
 
     function insertColumns(...$columns){  
@@ -166,18 +175,25 @@ class DbSet{
     }
 
     function updateSingle($id, $column, $data){
-        $column = getColumnName($column);
-        $query = "UPDATE $this->tableName ".
+        $column = $this->getColumnName($column);
+        $query = "UPDATE $this->pluralName ".
             "\nSET $column = $data ".
-            "\nWHERE $this->tableName.id = $id";
+            "\nWHERE $this->pluralName.id = $id";
 
-        $this->query->execute($query);
+        $this->execute($query);
+    }
+
+    function delete($id) {
+        $query = "DELETE FROM $this->pluralName ".
+            "\nWHERE $this->pluralName.id = $id;";
+
+        $this->execute($query);
     }
 
     function first($id){
         $result= $this->select()
-        ->where($this->id, $id)
-        ->toList();
+            ->where($this->id, $id)
+            ->toList();
         return $result[0];        
     }
 
