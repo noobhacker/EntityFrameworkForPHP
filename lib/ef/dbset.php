@@ -1,13 +1,22 @@
 <?php
 class DbSet{    
-    
+    // print sql statements    
+    private $debug = true;
+
     public $tableName;
     public $pluralName;
 
     private $selects;
     private $joins;
     private $conditions;
-    private $others;
+    private $others;    
+
+    private $insertColumns;
+    private $insertDatas;
+
+    private $updateId;
+    private $updateColumns;
+    private $updateDatas;
 
     private $conn;
 
@@ -19,12 +28,16 @@ class DbSet{
     }
 
     function select(...$columns){
-        $cols = count($columns);
-        for($i = 0; $i < $cols; $i++){
-            if($this->selects != "")
-                $this->selects .= ", ";
-            $this->selects .= $columns[$i];
-        }  
+        if($columns != null){
+            foreach($columns as $column) {
+                if($column == null)
+                    return $this;
+
+                if($this->selects != "")
+                    $this->selects .= ", ";
+                $this->selects .= $column;
+            }  
+        }
         return $this;
     }
 
@@ -72,44 +85,115 @@ class DbSet{
         return $this;
     }
 
-    function insert($columns, $data){
-        $query = "INSERT INTO $this->tableName ($columns) ".
-        "\nVALUES ($data);";
-
-        $this->execute($query);
-        return $this->conn->insert_id;        
+    private function getColumnName($column){
+            $lastIndex = strripos($column, ".");
+            return substr($column, $lastIndex + 1); // +1 for the dot
     }
 
-    function update($id, $updates){
+    function insertColumns(...$columns){  
+        foreach($columns as $column) {
+            if($this->insertColumns != "")
+                $this->insertColumns .= ", ";
+
+            $column = $this->getColumnName($column);
+            $this->insertColumns .= $column;          
+        }
+
+        return $this;
+    }
+
+    function insertDatas(...$datas){
+        $insertDatas = "";
+        foreach($datas as $data) {
+            if($insertDatas != "")
+                $insertDatas .= ", ";
+            $insertDatas .= $data;
+        }
+
+        $query = "INSERT INTO $this->pluralName ($this->insertColumns) ".
+            "VALUES ($insertDatas);";
+
+        $this->execute($query);
+        $this->insertColumns = "";    
+        return $this->conn->insert_id;   
+    }
+
+    function insertSingle($column, $data){
+        $column = $this->getColumnName($column);
+        $query = "INSERT INTO $this->pluralName ($column) ".
+            "VALUES ($data)";
+        $this->execute($query);
+        return $this->conn->insert_id;
+    }
+
+    function update($id){
+        $this->updateId = $id;
+    }
+
+    function updateColumns(...$columns){        
+        foreach($columns as $column) {
+            if($this->updateColumns != "")
+                $this->updateColumns .= ", ";
+
+            $column = $this->getColumnName($column);
+            $this->updateColumns .= $column;
+        }
+        return $this;
+    }
+
+    function updateDatas(...$datas){
+        $updateDatas = "";
+        foreach($datas as $data) {
+            if($updateDatas != "")
+                $updateDatas .= ", ";
+            $updateDatas .= $data;
+        }
+
+        $updates = "";
+        for($i = 0; $i < count($data); $i++) {
+            if($updates != "")
+                $updates .= ", \n";
+            $updates .= $this->updateColumns. " = ". $updateDatas;
+        }
+
+        $query = "UPDATE $this->pluralName ".
+            "\nSET ". $updates.
+            "\n WHERE $this->pluralName.id = $this->updateId;";
+
+        $this->execute($query);
+        $this->insertColumns = "";
+        $this->updateId = 0;
+    }
+
+    function updateSingle($id, $column, $data){
+        $column = getColumnName($column);
         $query = "UPDATE $this->tableName ".
-        "\nSET $updates".
-        "\nWHERE $this->tableName.id = $id;";
+            "\nSET $column = $data ".
+            "\nWHERE $this->tableName.id = $id";
 
-        $this->execute($query);
-    }
-
-    function delete($id){
-        $query = "DELETE FROM $this->tableName ".            
-        "\nWHERE $this->tableName.id = $id;";
-
-        $this->execute($query);
+        $this->query->execute($query);
     }
 
     function first($id){
         $result= $this->select()
-        ->where("$this->tableName.id = $id")
+        ->where($this->id, $id)
         ->toList();
         return $result[0];        
     }
 
     private function createSelectQuery(){
-        $this->selects == null ?? "*";
+        $this->selects ?? $this->selects = "*";
         $query = "SELECT $this->selects FROM $this->pluralName ".
-        $this->joins."WHERE $this->conditions".
-        $this->others.";";
+        $this->joins;
+
+        if($this->conditions != null){
+            $query .= "WHERE $this->conditions";
+        }
+
+        $query .= $this->others.";";
 
         $this->printDebug($query);
-        $this->selects = "";
+        $this->selects = null;
         $this->joins = "";
         $this->conditions = "";
         $this->others = "";
@@ -137,7 +221,6 @@ class DbSet{
         $this->printDebug($query);
     }
 
-    private $debug = true;
     private function printDebug($query){
         if($this->debug){
             $input = $query;
