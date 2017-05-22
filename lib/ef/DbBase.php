@@ -41,10 +41,28 @@ class DbBase
         return $this;
     }
 
-    protected function joinBase($one, $many) {
+    private function joinBase($one, $many, $target) {
         $foreignKey = $one->tableName."_id";
-        $this->joins .= "\nINNER JOIN $many->pluralName ";
+        $this->joins .= "\nINNER JOIN $target->pluralName ";
+
         $this->joins .= "ON $many->pluralName.$foreignKey = $one->pluralName.id ";
+    }
+
+    protected function joinManyBase($one, $many) {
+        $this->joinBase($one, $many, $many);
+    }
+
+    protected function joinOneBase($many, $one) {
+        $this->joinBase($one, $many, $one);
+    }
+
+    protected function whereBase($left, $middle, $right) {
+        if($this->conditions != "")
+            $this->conditions .= " AND \n";
+        else
+            $this->conditions .= "\n";
+
+        $this->conditions .= "$left $middle $right";
     }
 
     protected function getColumnName($column) {
@@ -52,10 +70,17 @@ class DbBase
         return substr($column, $lastIndex + 1); // +1 for the dot
     }
 
-    protected function createQuery($isDelete, $deleteTable=null) {
+
+    protected function checkData($data){
+        return is_string($data) ? "'$data'" : $data;
+    }
+
+    protected function createQuery($isDelete, $deleteTable = null) {
         $query = "";
         if($isDelete){
-            $query .= "DELETE FROM $deleteTable ";
+            if($deleteTable == null)
+                $deleteTable = $this;
+            $query .= "DELETE $deleteTable->pluralName FROM $this->pluralName ";
         } else {
             $this->selects ?? $this->selects = "*";
             $query .= "SELECT $this->selects FROM $this->pluralName ";
@@ -79,9 +104,9 @@ class DbBase
     }
 
     protected function execute($query) {
-        $this->conn->query($query);
         $this->printDebug($query);
-    }
+        $this->conn->query($query);
+}
 
     protected function printDebug($query) {
         if($this->debug){
@@ -90,6 +115,21 @@ class DbBase
             echo '<script>console.log("SQL: '.$input.'");</script>
             ';
         }
+    }
+
+    function toList() {
+        $query = $this->createQuery(false);
+        $rows = [];
+
+        if($results = $this->conn->query($query)){
+            while($row = mysqli_fetch_object($results)){
+                $rows[] = $row;
+            }
+
+            $results->close();
+        }
+
+        return $rows;
     }
 
 }

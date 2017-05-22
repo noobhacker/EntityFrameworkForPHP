@@ -8,7 +8,7 @@ class DbSet extends DbCore{
         $this->pluralName = $pluralName;
     }
 
-    function limit($number) {
+    function take($number) {
         $this->others .= "\nLIMIT $number ";
         return $this;
     }

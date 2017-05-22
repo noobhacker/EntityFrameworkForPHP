@@ -20,32 +20,49 @@ class DbCore extends DbBase
         if($this->selects != "")
             $this->selects .= ", ";
         $this->selects .= "$column". " AS ". $aliasName;
+
+        return $this;
     }
 
     function join(...$targets) {
         foreach($targets as $target){
-            $this->joinBase($this, $target);
+            $foreignKey = "$target->tableName"."Id";
+
+            // if holding target foreign key, self is many target is one
+            // if not holding, target holding, self is one target is many
+            if(property_exists($this, $foreignKey))
+                $this->joinOneBase($this, $target);
+            else
+                $this->joinManyBase($this, $target);
         }
 
         return $this;
     }
 
-    function customJoin($one, $many) {
-        $this->joinBase($one, $many);
+    function customJoin($from, $to) {
+        $foreignKey = "$to->tableName"."Id";
+        if(property_exists($from, $foreignKey))
+            $from->joinOneBase($from, $to);
+        else
+            $from->joinManyBase($from, $to);
 
         return $this;
     }
 
     function where($conditions, $equals) {
-        if($this->conditions != "")
-            $this->conditions .= " AND \n";
-        else
-            $this->conditions .= "\n";
-
-        $this->conditions .= "$conditions = $equals";
+        $this->whereBase($conditions, "=", $equals);
         return $this;
     }
 
+    function whereNot($conditions, $notEquals) {
+        $this->whereBase($conditions, "!=", $notEquals);
+        return $this;
+    }
+
+    function customWhere($left, $middle, $right) {
+        $this->whereBase($left, $middle, $right);
+        return $this;
+    }
 
     function insertColumns(...$columns) {
         foreach($columns as $column) {
@@ -64,7 +81,7 @@ class DbCore extends DbBase
         foreach($datas as $data) {
             if($insertDatas != "")
                 $insertDatas .= ", ";
-            $insertDatas .= $data;
+            $insertDatas .= $this->checkData($data);
         }
 
         $query = "INSERT INTO $this->pluralName ($this->insertColumns) ".
@@ -77,6 +94,7 @@ class DbCore extends DbBase
 
     function insertSingle($column, $data) {
         $column = $this->getColumnName($column);
+        $data = $this->checkData($data);
         $query = "INSERT INTO $this->pluralName ($column) ".
             "VALUES ($data)";
         $this->execute($query);
@@ -88,29 +106,25 @@ class DbCore extends DbBase
     }
 
     function updateColumns(...$columns) {
+        $this->updateColumns = [];
         foreach($columns as $column) {
-            if($this->updateColumns != "")
-                $this->updateColumns .= ", ";
-
             $column = $this->getColumnName($column);
-            $this->updateColumns .= $column;
+            $this->updateColumns = $column;
         }
         return $this;
     }
 
     function updateDatas(...$datas) {
-        $updateDatas = "";
+        $updateDatas = [];
         foreach($datas as $data) {
-            if($updateDatas != "")
-                $updateDatas .= ", ";
-            $updateDatas .= $data;
+            $updateDatas = $this->checkData($data);
         }
 
         $updates = "";
-        for($i = 0; $i < count($data); $i++) {
-            if($updates != "")
+        for($i = 0; $i < count($datas); $i++) {
+            if(count($updateDatas) != 0)
                 $updates .= ", \n";
-            $updates .= $this->updateColumns. " = ". $updateDatas;
+            $updates .= $this->updateColumns[$i]. " = ". $updateDatas[$i];
         }
 
         $query = "UPDATE $this->pluralName ".
@@ -124,6 +138,7 @@ class DbCore extends DbBase
 
     function updateSingle($id, $column, $data) {
         $column = $this->getColumnName($column);
+        $data = $this->checkData($data);
         $query = "UPDATE $this->pluralName ".
             "\nSET $column = $data ".
             "\nWHERE $this->pluralName.id = $id";
@@ -138,24 +153,10 @@ class DbCore extends DbBase
         $this->execute($query);
     }
 
-    function deleteMany($table){
-        $query = $this->createQuery(true, $table);
+    function deleteMany($deleteTable = null){
+        $query = $this->createQuery(true, $deleteTable);
         $this->execute($query);
     }
 
-    function toList() {
-        $query = $this->createQuery(false);
-        $rows = [];
-
-        if($results = $this->conn->query($query)){
-            while($row = mysqli_fetch_object($results)){
-                $rows[] = $row;
-            }
-
-            $results->close();
-        }
-
-        return $rows;
-    }
 
 }
